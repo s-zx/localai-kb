@@ -12,6 +12,7 @@
   "dependencies": {
     "edgeflowjs": "file:../edgeFlow.js",
     "onnxruntime-web": "^1.17.0",
+    "pdfjs-dist": "^5.5.207",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

@@ -55,34 +55,27 @@ async function readFileAsText(file: File): Promise<string> {
 }
 
 async function readPDFAsText(file: File): Promise<string> {
-  // Dynamically import pdfjs if available, otherwise fall back to plain text
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfjsLib: any = await (new Function('m', 'return import(m)'))('pdfjs-dist');
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const textParts: string[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfjsLib: any = await import('pdfjs-dist');
 
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pageText = (content.items as any[])
-        .filter((item) => typeof item.str === 'string')
-        .map((item) => item.str as string)
-        .join(' ');
-      textParts.push(pageText);
-    }
-    return textParts.join('\n\n');
-  } catch {
-    // pdfjs not available, read as text
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsText(file);
-    });
+  // Point the worker at the static file copied to public/pdf/
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf/pdf.worker.min.mjs';
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const textParts: string[] = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageText = (content.items as any[])
+      .filter((item: any) => typeof item.str === 'string')
+      .map((item: any) => item.str as string)
+      .join(' ');
+    textParts.push(pageText);
   }
+  return textParts.join('\n\n');
 }
 
 export async function processDocument(
