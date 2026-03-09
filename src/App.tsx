@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar.js';
 import { SearchBar } from './components/SearchBar.js';
 import { QAPanel } from './components/QAPanel.js';
+import { Welcome } from './components/Welcome.js';
 import { useEdgeFlow } from './hooks/useEdgeFlow.js';
 import { useDocuments } from './hooks/useDocuments.js';
 import { useQA } from './hooks/useQA.js';
@@ -15,6 +16,10 @@ export default function App() {
   const { status: pipelineStatus, initAll } = useEdgeFlow();
   const { documents, loading: uploadLoading, addDocument, removeDocument } = useDocuments();
   const { query, answers, topChunks, isSearching, error, ask } = useQA();
+
+  const modelsReady   = Object.values(pipelineStatus).every(s => s === 'ready');
+  const modelsLoading = Object.values(pipelineStatus).some(s => s === 'loading');
+  const showWelcome   = documents.length === 0 && !query && !isSearching;
 
   const handleFiles = useCallback(async (files: File[]) => {
     // Load models if not yet started
@@ -86,30 +91,45 @@ export default function App() {
               disabled={documents.length === 0}
             />
           </div>
-          {documents.length === 0 && (
+          {documents.length > 0 && (
             <div style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: 11,
+              fontSize: 10,
               color: 'var(--text-3)',
               whiteSpace: 'nowrap',
-              fontStyle: 'italic',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              flexShrink: 0,
             }}>
-              Upload a document to begin
+              <span style={{ color: 'var(--green)', fontSize: 8 }}>●</span>
+              {documents.length} doc{documents.length !== 1 ? 's' : ''} · local only
             </div>
           )}
         </header>
 
-        {/* Q&A results area */}
-        <QAPanel
-          query={query}
-          answers={answers}
-          topChunks={topChunks}
-          isSearching={isSearching}
-          error={error}
-        />
+        {/* Welcome screen (no documents yet) */}
+        {showWelcome && (
+          <Welcome
+            onInit={initAll}
+            modelsReady={modelsReady}
+            modelsLoading={modelsLoading}
+          />
+        )}
 
-        {/* Empty state prompt */}
-        {!query && !isSearching && documents.length > 0 && (
+        {/* Q&A results area */}
+        {!showWelcome && (
+          <QAPanel
+            query={query}
+            answers={answers}
+            topChunks={topChunks}
+            isSearching={isSearching}
+            error={error}
+          />
+        )}
+
+        {/* Hint when documents exist but no query yet */}
+        {!showWelcome && !query && !isSearching && (
           <div style={{
             position: 'absolute',
             bottom: 40,
@@ -124,8 +144,7 @@ export default function App() {
               color: 'var(--text-3)',
               letterSpacing: '0.1em',
             }}>
-              {documents.length} {documents.length === 1 ? 'document' : 'documents'} indexed ·
-              {' '}ask anything
+              {documents.length} {documents.length === 1 ? 'document' : 'documents'} indexed · ask anything
             </div>
           </div>
         )}

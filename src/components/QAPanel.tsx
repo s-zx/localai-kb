@@ -209,7 +209,7 @@ export function QAPanel({ query, answers, topChunks, isSearching, error }: Props
                   alignItems: 'center',
                   marginBottom: 8,
                 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: 10,
@@ -217,6 +217,20 @@ export function QAPanel({ query, answers, topChunks, isSearching, error }: Props
                     }}>
                       #{i + 1}
                     </span>
+                    {chunk.pageNumber !== undefined && (
+                      <span style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 9,
+                        letterSpacing: '0.06em',
+                        color: 'var(--amber)',
+                        background: 'var(--amber-glow)',
+                        border: '1px solid var(--amber-dim)',
+                        borderRadius: 3,
+                        padding: '1px 5px',
+                      }}>
+                        p.{chunk.pageNumber}
+                      </span>
+                    )}
                     <span style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: 9,

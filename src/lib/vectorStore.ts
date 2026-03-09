@@ -16,6 +16,7 @@ export interface StoredChunk {
   embedding: number[];
   category: string;
   chunkIndex: number;
+  pageNumber?: number;   // PDF page this chunk originates from (1-indexed)
 }
 
 export interface SearchResult {

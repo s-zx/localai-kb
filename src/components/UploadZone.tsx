@@ -56,24 +56,26 @@ export function UploadZone({ onFiles, disabled }: Props) {
         disabled={disabled}
       />
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 18,
+        fontSize: 20,
         marginBottom: 6,
         color: isDragging ? 'var(--amber)' : 'var(--text-2)',
       }}>
-        {isDragging ? '↓' : '+'}
+        {isDragging ? '↓' : '📄'}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text-1)' }}>
-        {disabled ? 'Processing...' : 'Drop files or click to upload'}
+      <div style={{ fontSize: 12, color: 'var(--text-1)', fontWeight: 500 }}>
+        {disabled ? 'Processing…' : 'Drop a document or click'}
       </div>
       <div style={{
-        marginTop: 4,
+        marginTop: 5,
         fontFamily: 'var(--font-mono)',
-        fontSize: 10,
+        fontSize: 9,
         color: 'var(--text-3)',
         letterSpacing: '0.06em',
+        lineHeight: 1.8,
       }}>
-        TXT · MD · PDF
+        PDF · TXT · MD
+        <br />
+        <span style={{ fontStyle: 'italic', fontFamily: 'inherit' }}>contracts, reports, research</span>
       </div>
     </div>
   );

@@ -40,35 +40,51 @@ export function Sidebar({
     }}>
       {/* Header */}
       <div style={{
-        padding: '20px 16px 14px',
+        padding: '18px 16px 14px',
         borderBottom: '1px solid var(--border)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 16, lineHeight: 1 }}>🔒</span>
           <span style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 700,
-            color: 'var(--amber)',
-            letterSpacing: '-0.01em',
+            color: 'var(--text-0)',
+            letterSpacing: '-0.02em',
           }}>
-            localai
-          </span>
-          <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            color: 'var(--text-3)',
-            letterSpacing: '0.08em',
-          }}>
-            KB
+            PrivateDoc
           </span>
         </div>
         <div style={{
-          marginTop: 2,
+          marginTop: 5,
           fontSize: 11,
-          color: 'var(--text-2)',
-          fontStyle: 'italic',
+          color: 'var(--text-3)',
+          lineHeight: 1.5,
         }}>
-          Private · Browser-native AI
+          AI document analysis —{' '}
+          <span style={{ color: 'var(--green)', fontWeight: 500 }}>
+            100% in your browser
+          </span>
+        </div>
+        <div style={{
+          marginTop: 6,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '2px 7px',
+          background: 'rgba(100, 200, 130, 0.07)',
+          border: '1px solid rgba(100, 200, 130, 0.2)',
+          borderRadius: 4,
+        }}>
+          <span style={{ fontSize: 9 }}>●</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            color: 'var(--green)',
+            letterSpacing: '0.06em',
+          }}>
+            NO DATA LEAVES YOUR DEVICE
+          </span>
         </div>
       </div>
 

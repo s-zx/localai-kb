@@ -24,58 +24,64 @@ export interface ProcessingProgress {
 
 export type ProgressCallback = (progress: ProcessingProgress) => void;
 
-function splitIntoChunks(text: string): string[] {
-  const words = text.split(/\s+/).filter(w => w.length > 0);
-  const chunks: string[] = [];
-  let start = 0;
+interface TextPage {
+  text: string;
+  pageNumber?: number;  // undefined for non-PDF files
+}
 
+/** Split a page's text into overlapping word-based chunks. */
+function splitPageIntoChunks(page: TextPage): Array<{ text: string; pageNumber?: number }> {
+  const words = page.text.split(/\s+/).filter(w => w.length > 0);
+  const chunks: Array<{ text: string; pageNumber?: number }> = [];
+  let start = 0;
   while (start < words.length) {
     const end = Math.min(start + CHUNK_SIZE, words.length);
-    const chunk = words.slice(start, end).join(' ');
-    if (chunk.trim().length > 0) {
-      chunks.push(chunk);
+    const text = words.slice(start, end).join(' ');
+    if (text.trim().length > 0) {
+      chunks.push({ text, pageNumber: page.pageNumber });
     }
     if (end >= words.length) break;
     start = end - CHUNK_OVERLAP;
   }
-
   return chunks;
 }
 
-async function readFileAsText(file: File): Promise<string> {
-  if (file.type === 'application/pdf') {
-    return readPDFAsText(file);
+/** Read a file into pages. PDFs return one entry per page with page numbers. */
+async function readFileAsPages(file: File): Promise<TextPage[]> {
+  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    return readPDFAsPages(file);
   }
-  return new Promise((resolve, reject) => {
+  const text = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(reader.error);
     reader.readAsText(file);
   });
+  return [{ text }];
 }
 
-async function readPDFAsText(file: File): Promise<string> {
+async function readPDFAsPages(file: File): Promise<TextPage[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfjsLib: any = await import('pdfjs-dist');
-
-  // Point the worker at the static file copied to public/pdf/
   pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf/pdf.worker.min.mjs';
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const textParts: string[] = [];
+  const pages: TextPage[] = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pageText = (content.items as any[])
+    const text = (content.items as any[])
       .filter((item: any) => typeof item.str === 'string')
       .map((item: any) => item.str as string)
       .join(' ');
-    textParts.push(pageText);
+    if (text.trim().length > 0) {
+      pages.push({ text, pageNumber: i });
+    }
   }
-  return textParts.join('\n\n');
+  return pages;
 }
 
 export async function processDocument(
@@ -89,13 +95,13 @@ export async function processDocument(
     onProgress?.({ phase, current, total, message });
   };
 
-  // Phase 1: Parse the file
+  // Phase 1: Parse the file into pages
   report('parsing', 0, 1, `Reading ${file.name}...`);
-  const rawText = await readFileAsText(file);
+  const pages = await readFileAsPages(file);
 
-  // Phase 2: Chunk the text
+  // Phase 2: Chunk each page (preserves page-number association)
   report('chunking', 0, 1, 'Splitting text into chunks...');
-  const rawChunks = splitIntoChunks(rawText);
+  const rawChunks = pages.flatMap(page => splitPageIntoChunks(page));
   const total = rawChunks.length;
 
   if (total === 0) {
@@ -118,14 +124,14 @@ export async function processDocument(
     const batch = rawChunks.slice(i, i + BATCH_SIZE);
 
     const batchResults = await Promise.all(
-      batch.map(async (chunkText, batchIdx) => {
+      batch.map(async (rawChunk, batchIdx) => {
         const chunkIndex = i + batchIdx;
         report('embedding', chunkIndex, total, `Processing chunk ${chunkIndex + 1}/${total}...`);
 
-        // Run embed + classify concurrently for each chunk — this is the edgeFlow.js showcase
+        // Run embed + classify concurrently for each chunk — edgeFlow.js concurrent pipelines
         const [embedResult, classifyResult] = await Promise.all([
-          extractor.run(chunkText) as Promise<{ embeddings: number[] }>,
-          classifier.classify(chunkText, labels),
+          extractor.run(rawChunk.text) as Promise<{ embeddings: number[] }>,
+          classifier.classify(rawChunk.text, labels),
         ]);
 
         const embedding = embedResult.embeddings ?? [];
@@ -135,10 +141,11 @@ export async function processDocument(
         const chunk: StoredChunk = {
           id: `chunk_${docId}_${chunkIndex}`,
           docId,
-          text: chunkText,
+          text: rawChunk.text,
           embedding,
           category,
           chunkIndex,
+          ...(rawChunk.pageNumber !== undefined && { pageNumber: rawChunk.pageNumber }),
         };
 
         processed++;
